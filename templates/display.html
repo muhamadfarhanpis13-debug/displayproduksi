@@ -1,0 +1,96 @@
+﻿{% extends "base.html" %}
+{% from "_macros.html" import tahap_badge %}
+{% block title %}Display Progres{% endblock %}
+{% block head %}<meta http-equiv="refresh" content="{{ refresh }}">{% endblock %}
+{% block body_class %}{{ 'kiosk' if kiosk }}{% endblock %}
+{% block content %}
+{% if kiosk %}
+<div class="kiosk-head">
+  <span class="brand__logo brand__logo--sm">PIS</span>
+  <h1 class="page-title">Display Progres</h1>
+  <div class="kiosk-clock">
+    <div class="kiosk-clock__time" id="clock">{{ diperbarui }}</div>
+    <div class="kiosk-clock__date">{{ today|tgl }}</div>
+  </div>
+</div>
+{% else %}
+<h1 class="page-title">Display Progres</h1>
+{% endif %}
+<p class="page-sub">Progres buku yang sedang berjalan di tiap bagian · diperbarui {{ diperbarui }}</p>
+
+<nav class="pills" aria-label="Filter bagian" style="margin-top:20px">
+  {% set kq = {'kiosk': '1'} if kiosk and user else {} %}
+  <a class="pill {{ 'is-active' if not pilih }}" href="{{ url_for('display', **kq) }}">Semua bagian</a>
+  {% for bg in BAGIAN %}
+  <a class="pill {{ 'is-active' if pilih == bg }}" href="{{ url_for('display', bagian=bg, **kq) }}">{{ bg }}</a>
+  {% endfor %}
+</nav>
+
+<div class="legend" aria-label="Keterangan warna tahap">
+  {% for t in TAHAP %}<span class="tahap-{{ t|slug }}"><i></i>{{ t }}</span>{% endfor %}
+</div>
+
+<div class="dp-grid {{ 'dp-grid--single' if kolom|length == 1 }}">
+  {% for k in kolom %}
+  <section class="card dp-col bagian-{{ k.bagian|slug }}">
+    <header class="dp-col__head">
+      <div class="dp-col__top">
+        <h2 class="dp-col__title">{{ k.bagian }}</h2>
+        <span class="dp-col__pct">{{ k.persen }}%</span>
+      </div>
+      <p class="dp-col__meta">{{ k.buku|length }} buku berjalan · {{ k.siap_cetak }} siap cetak</p>
+      <div class="stackbar" role="img" aria-label="Rata-rata progres {{ k.persen }}%">
+        {% for b in k.buku %}<span class="tahap-{{ b.tahap|slug }}"></span>{% endfor %}
+      </div>
+    </header>
+    <ul class="dp-list">
+      {% for b in k.buku %}
+      <li class="dp-item tahap-{{ b.tahap|slug }}">
+        <div class="dp-item__top">
+          {% if kiosk or not boleh_bagian(b.bagian) %}<span class="dp-item__title" title="{{ b.judul }}">{{ b.judul }}</span>
+          {% else %}<a class="dp-item__title" href="{{ url_for('buku_detail', buku_id=b.id) }}" title="{{ b.judul }}">{{ b.judul }}</a>{% endif %}
+          {{ tahap_badge(b.tahap) }}
+        </div>
+        <div class="segbar" aria-label="Tahap {{ b.ke }} dari {{ TAHAP|length }}">
+          {% for i in range(TAHAP|length) %}<span class="{{ 'on' if i < b.ke }}"></span>{% endfor %}
+        </div>
+        <p class="dp-item__meta">PIC {{ b.pic or '—' }} · tenggat <span class="{{ 'late' if b.status == 'terlambat' }}">{{ b.tenggat|ddmm }}</span></p>
+      </li>
+      {% else %}
+      <li class="dp-empty">Belum ada buku berjalan</li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endfor %}
+</div>
+{% endblock %}
+{% block scripts %}
+{% if kiosk %}
+<script>
+  // Perbesar tampilan sesuai lebar monitor (desain acuan 1440px)
+  document.body.style.zoom = Math.max(1, Math.min(2, window.innerWidth / 1440));
+
+  // Jam berjalan
+  (function tick() {
+    var d = new Date();
+    document.getElementById("clock").textContent =
+      String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+    setTimeout(tick, 1000 * (60 - d.getSeconds()));
+  })();
+
+  // Bila isi lebih panjang dari layar, gulir pelan ke bawah lalu kembali ke atas
+  (function () {
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    if (max <= 4) return;
+    var dir = 1, pause = 0;
+    setInterval(function () {
+      if (pause > 0) { pause--; return; }
+      window.scrollBy(0, dir);
+      var y = window.scrollY;
+      if (y >= document.documentElement.scrollHeight - window.innerHeight - 1) { dir = -1; pause = 120; }
+      else if (y <= 0 && dir < 0) { dir = 1; pause = 120; }
+    }, 30);
+  })();
+</script>
+{% endif %}
+{% endblock %}

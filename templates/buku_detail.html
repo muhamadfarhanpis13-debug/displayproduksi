@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, chip, tahap_badge, csrf %}
+{% block title %}{{ b.judul }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="breadcrumb"><a href="{{ url_for('produksi') }}">Buku dalam Produksi</a> / {{ b.kode }}</div>
+    <h1 class="page-title">{{ b.judul }}</h1>
+    <p class="page-sub">{{ b.penulis or 'Penulis belum diisi' }}</p>
+  </div>
+  <div class="page-actions">
+    {% if user.role == 'admin' %}<button class="button button--danger" type="button" data-dialog="hapus-buku">{{ icon('trash') }} Hapus</button>{% endif %}
+    <a class="button button--secondary" href="{{ url_for('buku_edit', buku_id=b.id) }}">{{ icon('edit') }} Edit</a>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="stack">
+    <section class="card card--pad">
+      <dl class="detail-grid">
+        <div><dt>Kode</dt><dd>{{ b.kode }}</dd></div>
+        <div><dt>Bagian</dt><dd>{{ chip(b.bagian) }}</dd></div>
+        <div><dt>PIC</dt><dd>{{ b.pic or '—' }}</dd></div>
+        <div><dt>Tenggat</dt><dd>{{ b.tenggat|ddmm(true) }}{% if b.tenggat %} <span class="{{ 'late' if b.status == 'terlambat' else 'muted' }} small">· {{ b|sisa }}</span>{% endif %}</dd></div>
+        <div><dt>Tahap saat ini</dt><dd>{{ tahap_badge(b.tahap) }}</dd></div>
+        <div><dt>Terakhir diubah</dt><dd>{{ b.diubah|tgl(true) }}</dd></div>
+        {% if b.catatan %}<div class="span-2"><dt>Catatan</dt><dd style="white-space: pre-line">{{ b.catatan }}</dd></div>{% endif %}
+      </dl>
+      <div class="segbar tahap-{{ b.tahap|slug }}" style="margin-top:24px; gap:8px">
+        {% for i in range(TAHAP|length) %}<span class="{{ 'on' if i < b.ke }}" style="height:6px"></span>{% endfor %}
+      </div>
+      <div class="segbar" style="margin:0; gap:8px">
+        {% for t in TAHAP %}<span style="height:auto; background:none; font-size:12px; color:{{ 'var(--color-ink)' if t == b.tahap else 'var(--color-muted)' }}; font-weight:{{ 600 if t == b.tahap else 400 }}">{{ t }}</span>{% endfor %}
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card__head">
+        <h2 class="card__title">File buku ini</h2>
+        <a class="link" href="{{ url_for('file_list', buku=b.id) }}">Buka di menu File</a>
+      </div>
+      <div class="card__body">
+        <form method="post" action="{{ url_for('file_unggah') }}" enctype="multipart/form-data" class="stack" style="gap:12px">
+          {{ csrf() }}
+          <input type="hidden" name="buku_id" value="{{ b.id }}">
+          <input type="hidden" name="next" value="{{ url_for('buku_detail', buku_id=b.id) }}">
+          <label class="dropzone" data-dropzone>
+            {{ icon('upload') }}
+            <strong>Tarik file ke sini atau klik untuk memilih</strong>
+            <span class="muted small">Naskah, sampul, layout, PDF — maks. 500 MB</span>
+            <span class="dropzone__files" data-dropzone-files></span>
+            <input type="file" name="files" multiple>
+          </label>
+          <div style="display:flex; gap:10px; flex-wrap:wrap">
+            <select class="select input-sm" name="folder" required style="flex:1; min-width:160px" aria-label="Folder">
+              {% for fd in FOLDER %}<option value="{{ fd }}">{{ fd }}</option>{% endfor %}
+            </select>
+            <button class="button button--primary button--sm" type="submit">{{ icon('upload') }} Unggah</button>
+          </div>
+        </form>
+      </div>
+      {% if files %}
+      <ul class="list" style="border-top: 1px solid var(--color-border)">
+        {% for f in files %}
+        {% set ext = f.nama.rsplit('.', 1)[-1]|lower %}
+        <li class="list__item">
+          <span class="file-icon file-icon--{{ ext }}">{{ ext[:4] }}</span>
+          <div class="list__main">
+            <a class="list__title" href="{{ url_for('file_unduh', file_id=f.id, lihat=1) }}" target="_blank" rel="noopener">{{ f.nama }}</a>
+            <div class="list__meta">{{ f.folder }} · {{ f.ukuran|ukuran }} · {{ f.oleh }} · {{ f.diunggah|tgl(true) }}</div>
+          </div>
+          <a class="button button--ghost button--icon" href="{{ url_for('file_unduh', file_id=f.id) }}" title="Unduh" aria-label="Unduh {{ f.nama }}">{{ icon('download') }}</a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="stack">
+    <section class="card">
+      <div class="card__head"><h2 class="card__title">Ubah tahap</h2></div>
+      <form class="card__body stack" style="gap:14px" method="post" action="{{ url_for('buku_tahap', buku_id=b.id) }}">
+        {{ csrf() }}
+        {% set urut = SEMUA_TAHAP.index(b.tahap) if b.tahap in SEMUA_TAHAP else -1 %}
+        <div class="field">
+          <label class="field__label" for="tahap-baru">Pindahkan ke</label>
+          <select class="select" id="tahap-baru" name="tahap">
+            {% for t in SEMUA_TAHAP %}
+            <option value="{{ t }}" {{ 'selected' if loop.index0 == urut + 1 }} {{ 'disabled' if t == b.tahap }}>{{ t }}{{ ' (arsipkan)' if t == SELESAI }}{{ ' — sekarang' if t == b.tahap }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label class="field__label" for="catatan-tahap">Catatan <span class="muted" style="font-weight:400">(opsional)</span></label>
+          <textarea class="textarea" id="catatan-tahap" name="catatan" style="min-height:72px" placeholder="Mis. revisi dari editor sudah masuk"></textarea>
+        </div>
+        <button class="button button--primary button--block" type="submit">Simpan tahap</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <div class="card__head"><h2 class="card__title">Riwayat tahap</h2></div>
+      <div class="card__body">
+        <ul class="timeline">
+          {% for r in riwayat %}
+          <li class="timeline__item">
+            <div class="timeline__title">{% if r.dari_tahap %}{{ r.dari_tahap }} → {{ r.ke_tahap }}{% else %}{{ r.ke_tahap }}{% endif %}</div>
+            <div class="timeline__meta">{{ r.oleh }} · {{ r.waktu|tgl(true) }}</div>
+            {% if r.catatan %}<div class="timeline__note">{{ r.catatan }}</div>{% endif %}
+          </li>
+          {% else %}
+          <li class="muted">Belum ada riwayat.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </section>
+  </div>
+</div>
+
+{% if user.role == 'admin' %}
+<dialog id="hapus-buku">
+  <form class="dialog__body" method="post" action="{{ url_for('buku_hapus', buku_id=b.id) }}">
+    {{ csrf() }}
+    <h2 class="dialog__title">Hapus buku ini?</h2>
+    <p class="muted">“{{ b.judul }}” dan seluruh riwayat tahapnya akan dihapus permanen. Kalau buku sudah selesai, sebaiknya ubah tahapnya ke <strong>Selesai</strong> agar tetap tersimpan di arsip. File yang sudah diunggah tetap ada di menu File.</p>
+    <div class="form-actions">
+      <button class="button button--secondary" type="button" data-close>Batal</button>
+      <button class="button button--danger-solid button" type="submit">Hapus buku</button>
+    </div>
+  </form>
+</dialog>
+{% endif %}
+{% endblock %}

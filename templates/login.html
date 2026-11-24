@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block title %}Masuk{% endblock %}
+{% block body %}
+<main class="login">
+  <div class="login__column">
+    <header class="brand">
+      <div class="brand__logo" aria-hidden="true">PIS</div>
+      <h1 class="brand__title">Sistem Produksi Buku</h1>
+      <p class="brand__subtitle">Masuk dengan akun internal PT PIS</p>
+    </header>
+
+    <form class="card card--form" method="post" id="login-form" novalidate>
+      {{ csrf() }}
+      <div class="field">
+        <label class="field__label" for="username">Username</label>
+        <input class="field__input" id="username" name="username" type="text" value="{{ username }}"
+               placeholder="nama.pengguna" autocomplete="username" required autofocus
+               {% if error %}aria-invalid="true"{% endif %}>
+      </div>
+      <div class="field">
+        <label class="field__label" for="password">Kata sandi</label>
+        <input class="field__input" id="password" name="password" type="password"
+               placeholder="••••••••" autocomplete="current-password" required
+               {% if error %}aria-invalid="true"{% endif %}>
+      </div>
+      <div class="options">
+        <label class="checkbox">
+          <input type="checkbox" name="remember" value="1">
+          <span class="checkbox__box" aria-hidden="true"></span>
+          <span class="checkbox__label">Ingat saya</span>
+        </label>
+        <a class="link" href="#" data-dialog="lupa">Lupa kata sandi?</a>
+      </div>
+      <p class="form-error" id="form-error" role="alert" {% if not error %}hidden{% endif %}>{{ error or '' }}</p>
+      <button class="button button--primary button--block" type="submit">Masuk</button>
+    </form>
+
+    <p class="footnote">Kendala akun? Hubungi admin IT.</p>
+  </div>
+</main>
+
+<dialog id="lupa">
+  <div class="dialog__body">
+    <h2 class="dialog__title">Lupa kata sandi?</h2>
+    <p class="muted">Kata sandi hanya bisa direset oleh admin. Hubungi admin IT, lalu admin dapat mengatur ulang lewat menu <strong>Pengguna</strong>.</p>
+    <div class="form-actions">
+      <button class="button button--primary" type="button" data-close>Mengerti</button>
+    </div>
+  </div>
+</dialog>
+{% endblock %}
+{% block scripts %}
+<script>
+  document.getElementById("login-form").addEventListener("submit", function (e) {
+    var u = this.username, p = this.password, err = document.getElementById("form-error");
+    var bad = !u.value.trim() ? [u, "Username wajib diisi."] : !p.value ? [p, "Kata sandi wajib diisi."] : null;
+    if (bad) {
+      e.preventDefault();
+      err.textContent = bad[1]; err.hidden = false;
+      bad[0].setAttribute("aria-invalid", "true"); bad[0].focus();
+      return;
+    }
+    var btn = this.querySelector("button[type=submit]");
+    btn.disabled = true; btn.textContent = "Memproses…";
+  });
+</script>
+{% endblock %}

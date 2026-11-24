@@ -1,0 +1,7 @@
+produksi.db
+produksi.db-*
+uploads/
+backup/
+.secret_key
+__pycache__/
+*.pyc

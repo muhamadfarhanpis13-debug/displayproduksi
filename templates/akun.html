@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block title %}Akun saya{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Akun saya</h1>
+    <p class="page-sub">{{ user.nama }} · {{ user.username }} · {{ user.role|capitalize }} · {{ ('Bagian ' ~ user.bagian) if user.role == 'staf' and user.bagian else 'Semua bagian' }}</p>
+  </div>
+</div>
+
+<form class="card card--form" method="post" style="max-width: 440px">
+  {{ csrf() }}
+  <h2 class="card__title">Ganti kata sandi</h2>
+  <div class="field">
+    <label class="field__label" for="lama">Kata sandi lama</label>
+    <input class="field__input" id="lama" name="lama" type="password" required autocomplete="current-password">
+  </div>
+  <div class="field">
+    <label class="field__label" for="baru">Kata sandi baru</label>
+    <input class="field__input" id="baru" name="baru" type="password" minlength="6" required autocomplete="new-password">
+    <span class="field__hint">Minimal 6 karakter.</span>
+  </div>
+  <div class="field">
+    <label class="field__label" for="ulang">Ulangi kata sandi baru</label>
+    <input class="field__input" id="ulang" name="ulang" type="password" minlength="6" required autocomplete="new-password">
+  </div>
+  <button class="button button--primary button--block" type="submit">Simpan kata sandi</button>
+</form>
+{% endblock %}

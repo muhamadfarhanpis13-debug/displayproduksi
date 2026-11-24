@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, csrf %}
+{% block title %}Tambah Data Buku{% endblock %}
+{% block content %}
+<div class="narrow">
+  <h1 class="page-title">Tambah Data Buku</h1>
+  <p class="page-sub" style="margin-bottom:24px">Daftarkan buku baru ke alur produksi.</p>
+
+  <ol class="steps" style="list-style:none; padding:0; margin-top:0">
+    {% for label in ['Isi data', 'Periksa', 'Selesai'] %}
+    <li class="steps__item {{ 'is-done' if loop.index < step }} {{ 'is-current' if loop.index == step }}" {% if loop.index == step %}aria-current="step"{% endif %}>{{ loop.index }}. {{ label }}</li>
+    {% endfor %}
+  </ol>
+
+  {% if errors %}
+  <ul class="form-errors" role="alert" style="margin-bottom:16px">{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+  {% endif %}
+
+  {% if step == 1 %}
+  <form class="card card--pad" method="post" action="{{ url_for('buku_tambah') }}" novalidate>
+    {{ csrf() }}
+    <div class="form-grid">
+      <div class="field span-2">
+        <label class="field__label" for="judul">Judul buku *</label>
+        <input class="field__input" id="judul" name="judul" value="{{ b.judul }}" placeholder="Tulis judul lengkap" required autofocus>
+      </div>
+      <div class="field span-2">
+        <label class="field__label" for="penulis">Penulis / penerjemah</label>
+        <input class="field__input" id="penulis" name="penulis" value="{{ b.penulis }}" placeholder="Nama penulis atau penerjemah">
+      </div>
+      <div class="field">
+        <label class="field__label" for="bagian">Bagian *</label>
+        <select class="select" id="bagian" name="bagian" required>
+          <option value="" disabled {{ 'selected' if not b.bagian }}>Pilih bagian</option>
+          {% for bg in BAGIAN_BOLEH %}<option value="{{ bg }}" {{ 'selected' if b.bagian == bg }}>{{ bg }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label class="field__label" for="tahap">Tahap awal</label>
+        <select class="select" id="tahap" name="tahap">
+          {% for t in TAHAP %}<option value="{{ t }}" {{ 'selected' if b.tahap == t }}>{{ t }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label class="field__label" for="pic">PIC</label>
+        <input class="field__input" id="pic" name="pic" value="{{ b.pic }}" placeholder="Nama PIC">
+      </div>
+      <div class="field">
+        <label class="field__label" for="tenggat">Tenggat</label>
+        <input class="field__input" id="tenggat" name="tenggat" type="date" value="{{ b.tenggat or '' }}">
+      </div>
+      <div class="field span-2">
+        <label class="field__label" for="catatan">Catatan (opsional)</label>
+        <input class="field__input" id="catatan" name="catatan" value="{{ b.catatan }}" placeholder="Info tambahan untuk tim produksi">
+      </div>
+    </div>
+    <div class="form-actions form-actions--split" style="margin-top:24px">
+      <a class="button button--secondary" href="{{ url_for('produksi') }}">Batal</a>
+      <button class="button button--primary" type="submit" name="aksi" value="periksa">Lanjut: Periksa data</button>
+    </div>
+  </form>
+
+  {% elif step == 2 %}
+  <form class="card card--pad" method="post" action="{{ url_for('buku_tambah') }}">
+    {{ csrf() }}
+    {% for k in ['judul', 'penulis', 'bagian', 'tahap', 'pic', 'tenggat', 'catatan'] %}
+    <input type="hidden" name="{{ k }}" value="{{ b[k] or '' }}">
+    {% endfor %}
+    <p class="muted" style="margin-bottom:16px">Pastikan data di bawah sudah benar sebelum disimpan.</p>
+    <table class="review">
+      <tr><th scope="row">Judul buku</th><td>{{ b.judul }}</td></tr>
+      <tr><th scope="row">Penulis</th><td>{{ b.penulis or '—' }}</td></tr>
+      <tr><th scope="row">Bagian</th><td>{{ b.bagian }}</td></tr>
+      <tr><th scope="row">Tahap awal</th><td>{{ b.tahap }}</td></tr>
+      <tr><th scope="row">PIC</th><td>{{ b.pic or '—' }}</td></tr>
+      <tr><th scope="row">Tenggat</th><td>{{ b.tenggat|ddmm(true) if b.tenggat else '—' }}</td></tr>
+      <tr><th scope="row">Catatan</th><td>{{ b.catatan or '—' }}</td></tr>
+    </table>
+    <label class="checkbox" style="margin:18px 0 20px">
+      <input type="checkbox" name="benar" value="1" required>
+      <span class="checkbox__box" aria-hidden="true"></span>
+      <span class="checkbox__label">Data sudah saya periksa dan benar</span>
+    </label>
+    <div class="form-actions form-actions--split">
+      <button class="button button--secondary" type="submit" name="aksi" value="ubah" formnovalidate>{{ icon('arrow-left') }} Ubah data</button>
+      <button class="button button--primary" type="submit" name="aksi" value="simpan">Simpan buku</button>
+    </div>
+  </form>
+
+  {% else %}
+  <section class="card success">
+    <span class="success__icon">{{ icon('check') }}</span>
+    <h2 class="success__title">Buku berhasil ditambahkan</h2>
+    <p class="success__text">“{{ b.judul }}” ({{ b.kode }}) sudah masuk ke tahap {{ b.tahap }} dan tampil di daftar produksi.</p>
+    <div class="form-actions">
+      <a class="button button--secondary" href="{{ url_for('buku_tambah') }}">Tambah buku lain</a>
+      <a class="button button--primary" href="{{ url_for('produksi') }}">Lihat daftar produksi</a>
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

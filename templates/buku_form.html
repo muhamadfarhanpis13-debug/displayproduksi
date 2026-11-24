@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block title %}Edit buku{% endblock %}
+{% block content %}
+<div class="narrow">
+  <div class="breadcrumb">
+    <a href="{{ url_for('produksi') }}">Buku dalam Produksi</a> /
+    <a href="{{ url_for('buku_detail', buku_id=b.id) }}">{{ b.judul }}</a> / Edit
+  </div>
+  <h1 class="page-title" style="margin-bottom:24px">Edit buku</h1>
+
+  <form class="card card--pad" method="post">
+    {{ csrf() }}
+    <div class="form-grid">
+      <div class="field span-2">
+        <label class="field__label" for="judul">Judul buku *</label>
+        <input class="field__input" id="judul" name="judul" value="{{ b.judul }}" required>
+      </div>
+      <div class="field">
+        <label class="field__label" for="kode">Kode *</label>
+        <input class="field__input" id="kode" name="kode" value="{{ b.kode }}" required>
+      </div>
+      <div class="field">
+        <label class="field__label" for="penulis">Penulis / penerjemah</label>
+        <input class="field__input" id="penulis" name="penulis" value="{{ b.penulis }}">
+      </div>
+      <div class="field">
+        <label class="field__label" for="bagian">Bagian *</label>
+        <select class="select" id="bagian" name="bagian" required>
+          {% for bg in BAGIAN_BOLEH %}<option value="{{ bg }}" {{ 'selected' if b.bagian == bg }}>{{ bg }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label class="field__label" for="tahap">Tahap</label>
+        <select class="select" id="tahap" name="tahap">
+          {% for t in SEMUA_TAHAP %}<option value="{{ t }}" {{ 'selected' if b.tahap == t }}>{{ t }}{{ ' (arsip)' if t == SELESAI }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label class="field__label" for="pic">PIC</label>
+        <input class="field__input" id="pic" name="pic" value="{{ b.pic }}">
+      </div>
+      <div class="field">
+        <label class="field__label" for="tenggat">Tenggat</label>
+        <input class="field__input" id="tenggat" name="tenggat" type="date" value="{{ b.tenggat or '' }}">
+      </div>
+      <div class="field span-2">
+        <label class="field__label" for="catatan">Catatan (opsional)</label>
+        <textarea class="textarea" id="catatan" name="catatan">{{ b.catatan }}</textarea>
+      </div>
+    </div>
+    <div class="form-actions form-actions--split" style="margin-top: 24px">
+      <a class="button button--secondary" href="{{ url_for('buku_detail', buku_id=b.id) }}">Batal</a>
+      <button class="button button--primary" type="submit">Simpan perubahan</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

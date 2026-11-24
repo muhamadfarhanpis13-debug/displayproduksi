@@ -1,0 +1,56 @@
+{% from "_macros.html" import icon, csrf, flashes %}<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{% endblock %} · Sistem Produksi Buku</title>
+  <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+{% block body %}
+{% if not kiosk %}
+<div class="shell">
+  <aside class="sidebar">
+    <a class="sidebar__brand" href="{{ url_for('beranda') }}">
+      <span class="brand__logo brand__logo--sm">PIS</span>
+      <span>Produksi Buku</span>
+    </a>
+    <nav class="nav" aria-label="Menu utama">
+      <a class="nav__item {{ 'is-active' if active == 'beranda' }}" href="{{ url_for('beranda') }}" title="Beranda">{{ icon('home') }}<span>Beranda</span></a>
+      <a class="nav__item {{ 'is-active' if active == 'produksi' }}" href="{{ url_for('produksi') }}" title="Buku dalam Produksi">{{ icon('book') }}<span>Buku dalam Produksi</span></a>
+      <a class="nav__item {{ 'is-active' if active == 'selesai' }}" href="{{ url_for('selesai') }}" title="Buku Selesai">{{ icon('book-check') }}<span>Buku Selesai</span></a>
+      <a class="nav__item {{ 'is-active' if active == 'display' }}" href="{{ url_for('display') }}" title="Display">{{ icon('monitor') }}<span>Display</span></a>
+      <a class="nav__item {{ 'is-active' if active == 'tambah' }}" href="{{ url_for('buku_tambah') }}" title="Tambah Data">{{ icon('plus-circle') }}<span>Tambah Data</span></a>
+      {% if user.role == 'admin' %}
+      <a class="nav__item {{ 'is-active' if active == 'pengguna' }}" href="{{ url_for('pengguna') }}" title="Kelola Pengguna">{{ icon('users') }}<span>Kelola Pengguna</span></a>
+      {% endif %}
+    </nav>
+    <div class="sidebar__foot">
+      <nav class="nav nav--minor" aria-label="Menu lain">
+        <a class="nav__item {{ 'is-active' if active == 'file' }}" href="{{ url_for('file_list') }}" title="File">{{ icon('folder') }}<span>File</span></a>
+        <a class="nav__item {{ 'is-active' if active == 'akun' }}" href="{{ url_for('akun') }}" title="Akun saya">{{ icon('key') }}<span>Akun saya</span></a>
+      </nav>
+      <form class="sidebar__logout" method="post" action="{{ url_for('logout') }}">
+        {{ csrf() }}
+        <button class="nav__item nav__item--button" type="submit" title="Keluar">{{ icon('logout') }}<span>Keluar</span></button>
+      </form>
+    </div>
+  </aside>
+{% endif %}
+  <main class="main{{ ' main--kiosk' if kiosk }}">
+    {{ flashes() }}
+    {% block content %}{% endblock %}
+  </main>
+{% if not kiosk %}
+</div>
+{% endif %}
+{% endblock %}
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

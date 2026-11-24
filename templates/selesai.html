@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, chip, csrf %}
+{% block title %}Buku Selesai{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Buku Selesai</h1>
+    <p class="page-sub">Buku yang sudah jadi. Data, riwayat tahap, dan filenya tetap tersimpan.</p>
+  </div>
+  <div class="page-actions">
+    <a class="button button--secondary" href="{{ url_for('selesai_export', bagian=f.bagian or None, tahun=f.tahun or None, q=f.q or None) }}"
+       title="Unduh daftar yang sedang tampil (sesuai filter) beserta riwayat tahapnya">{{ icon('download') }} Ekspor Excel</a>
+    <a class="button button--secondary" href="{{ url_for('produksi') }}">{{ icon('book') }} Buku dalam Produksi</a>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="card stat">
+    <div class="stat__label">Buku selesai{{ ' (sesuai filter)' if f.bagian or f.tahun or f.q }}</div>
+    <div class="stat__value">{{ ringkasan.total }}</div>
+  </div>
+  <div class="card stat">
+    <div class="stat__label">Selesai bulan ini</div>
+    <div class="stat__value">{{ ringkasan.bulan_ini }}</div>
+  </div>
+  <div class="card stat">
+    <div class="stat__label">Rata-rata lama produksi</div>
+    <div class="stat__value">{{ ringkasan.rata_lama if ringkasan.rata_lama is not none else '—' }}{% if ringkasan.rata_lama is not none %} <small>hari</small>{% endif %}</div>
+  </div>
+  <div class="card stat">
+    <div class="stat__label">Tepat waktu</div>
+    <div class="stat__value">{{ ringkasan.tepat }} <small>dari {{ ringkasan.bertenggat }}</small></div>
+    <div class="stat__sub">buku yang punya tenggat</div>
+  </div>
+</div>
+
+<div class="toolbar">
+  <nav class="pills" aria-label="Filter bagian">
+    {% if BAGIAN_BOLEH|length > 1 %}
+    <a class="pill {{ 'is-active' if f.bagian not in BAGIAN }}" href="{{ url_for('selesai', tahun=f.tahun or None, q=f.q or None) }}">Semua bagian</a>
+    {% for bg in BAGIAN_BOLEH %}
+    <a class="pill {{ 'is-active' if f.bagian == bg }}" href="{{ url_for('selesai', bagian=bg, tahun=f.tahun or None, q=f.q or None) }}">{{ bg }}</a>
+    {% endfor %}
+    {% else %}
+    <span class="pill is-active">{{ BAGIAN_BOLEH[0] }}</span>
+    {% endif %}
+  </nav>
+  <form class="toolbar__right" method="get" role="search">
+    {% if f.bagian %}<input type="hidden" name="bagian" value="{{ f.bagian }}">{% endif %}
+    <select class="select input-sm" name="tahun" aria-label="Tahun selesai" data-autosubmit>
+      <option value="">Semua tahun</option>
+      {% for t in tahun_ada %}<option value="{{ t }}" {{ 'selected' if f.tahun == t }}>{{ t }}</option>{% endfor %}
+    </select>
+    <label class="search">
+      {{ icon('search') }}
+      <span class="sr-only">Cari</span>
+      <input class="field__input" type="search" name="q" value="{{ f.q }}" placeholder="Cari judul, kode, atau PIC">
+    </label>
+  </form>
+</div>
+
+<section class="card table-card">
+  {% if buku %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th>Kode</th><th>Judul Buku</th><th class="hide-sm">PIC</th><th>Selesai</th><th class="hide-sm">Lama</th><th>Ketepatan</th><th class="actions"><span class="sr-only">Aksi</span></th></tr>
+      </thead>
+      <tbody>
+        {% for b in buku %}
+        <tr>
+          <td class="nowrap">{{ b.kode }}</td>
+          <td>
+            <a class="judul" href="{{ url_for('buku_detail', buku_id=b.id) }}">{{ b.judul }}</a>
+            <div class="sub">{{ b.penulis or '—' }} · {{ b.bagian }}</div>
+          </td>
+          <td class="hide-sm">{{ b.pic or '—' }}</td>
+          <td class="nowrap">{{ b.tgl_selesai|tgl }}</td>
+          <td class="hide-sm nowrap">{{ (b.lama ~ ' hari') if b.lama is not none else '—' }}</td>
+          <td class="nowrap">
+            <span class="badge {{ 'badge--ok' if b.telat is not none and b.telat <= 0 else 'badge--terlambat' if b.telat is not none }}"
+                  title="Tenggat {{ b.tenggat|ddmm(true) }}">{{ b|ketepatan }}</span>
+          </td>
+          <td class="actions">
+            <form method="post" action="{{ url_for('buku_tahap', buku_id=b.id) }}">
+              {{ csrf() }}
+              <input type="hidden" name="next" value="{{ request.full_path }}">
+              <input type="hidden" name="catatan" value="Dikembalikan ke produksi">
+              <label class="tahap-pick" title="Kembalikan ke produksi">
+                <span class="badge tahap-selesai">Kembalikan</span>{{ icon('chevron-down') }}
+                <select name="tahap" aria-label="Kembalikan {{ b.judul }} ke tahap" data-autosubmit>
+                  <option value="" selected disabled>Kembalikan ke tahap…</option>
+                  {% for t in TAHAP %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+                </select>
+              </label>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">
+    {{ icon('book-check') }}
+    <p class="empty__title">{{ 'Tidak ada buku yang cocok' if f.bagian or f.tahun or f.q else 'Belum ada buku selesai' }}</p>
+    <p>{% if f.bagian or f.tahun or f.q %}Coba ubah filter atau kata pencarian.{% else %}Di <a class="link" href="{{ url_for('produksi') }}">Buku dalam Produksi</a>, ubah tahap buku ke <strong>Selesai</strong> saat buku sudah jadi.{% endif %}</p>
+  </div>
+  {% endif %}
+</section>
+
+<div class="card notice notice--inline" style="margin-top:20px">
+  {{ icon('info') }}
+  <span>Buku yang ternyata belum selesai (misalnya cetak ulang) bisa dikembalikan ke produksi lewat tombol <strong>Kembalikan</strong>. Perubahan tercatat di riwayat.</span>
+</div>
+{% endblock %}

@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, csrf %}
+{% block title %}Pengguna{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Pengguna</h1>
+    <p class="page-sub">Akun login. Nama pengguna dicatat di setiap riwayat perubahan tahap.</p>
+  </div>
+</div>
+
+<div class="grid-2">
+  <section class="card">
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Nama</th><th>Peran</th><th>Akses bagian</th><th class="hide-sm">Dibuat</th><th class="actions"><span class="sr-only">Aksi</span></th></tr></thead>
+        <tbody>
+          {% for u in users %}
+          <tr>
+            <td>
+              <div class="file-name"><span class="avatar">{{ u.nama[:1]|upper }}</span>
+                <div><div class="judul">{{ u.nama }}{% if u.id == user.id %} <span class="muted small">(Anda)</span>{% endif %}</div><div class="sub">{{ u.username }}</div></div>
+              </div>
+            </td>
+            <td><span class="badge {{ 'badge--admin' if u.role == 'admin' }}">{{ u.role|capitalize }}</span></td>
+            <td>
+              {% if u.role == 'admin' %}<span class="muted">Semua bagian</span>
+              {% else %}
+              <form method="post" action="{{ url_for('pengguna_bagian', user_id=u.id) }}">
+                {{ csrf() }}
+                <select class="select input-sm" name="bagian" aria-label="Akses bagian {{ u.username }}" data-autosubmit>
+                  <option value="" {{ 'selected' if not u.bagian }}>Semua bagian</option>
+                  {% for bg in BAGIAN %}<option value="{{ bg }}" {{ 'selected' if u.bagian == bg }}>Hanya {{ bg }}</option>{% endfor %}
+                </select>
+              </form>
+              {% endif %}
+            </td>
+            <td class="hide-sm">{{ u.dibuat|tgl }}</td>
+            <td class="actions">
+              <button class="button button--ghost button--sm" type="button" data-dialog="reset-{{ u.id }}">{{ icon('key') }} Reset</button>
+              {% if u.id != user.id %}
+              <form class="inline-form" method="post" action="{{ url_for('pengguna_hapus', user_id=u.id) }}" data-confirm="Hapus akun {{ u.username }}? Riwayat yang dicatat atas namanya tetap tersimpan.">
+                {{ csrf() }}
+                <button class="button button--ghost button--icon" type="submit" title="Hapus" aria-label="Hapus {{ u.username }}" style="color: var(--color-danger)">{{ icon('trash') }}</button>
+              </form>
+              {% endif %}
+              <dialog id="reset-{{ u.id }}">
+                <form class="dialog__body" method="post" action="{{ url_for('pengguna_reset', user_id=u.id) }}" style="text-align:left">
+                  {{ csrf() }}
+                  <h2 class="dialog__title">Reset kata sandi {{ u.username }}</h2>
+                  <div class="field">
+                    <label class="field__label" for="pw-{{ u.id }}">Kata sandi baru</label>
+                    <input class="field__input" id="pw-{{ u.id }}" name="password" type="text" minlength="6" required autocomplete="off">
+                    <span class="field__hint">Minimal 6 karakter. Sampaikan ke pengguna, lalu minta ia menggantinya.</span>
+                  </div>
+                  <div class="form-actions">
+                    <button class="button button--secondary" type="button" data-close>Batal</button>
+                    <button class="button button--primary" type="submit">Simpan</button>
+                  </div>
+                </form>
+              </dialog>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card__head"><h2 class="card__title">Tambah akun</h2></div>
+    <form class="card__body stack" style="gap:16px" method="post">
+      {{ csrf() }}
+      <div class="field">
+        <label class="field__label" for="nama">Nama lengkap</label>
+        <input class="field__input" id="nama" name="nama" required placeholder="Mis. Rina Kartika">
+      </div>
+      <div class="field">
+        <label class="field__label" for="username">Username</label>
+        <input class="field__input" id="username" name="username" required placeholder="rina.k" autocomplete="off">
+      </div>
+      <div class="field">
+        <label class="field__label" for="password">Kata sandi awal</label>
+        <input class="field__input" id="password" name="password" type="text" minlength="6" required autocomplete="off">
+      </div>
+      <div class="field">
+        <label class="field__label" for="role">Peran</label>
+        <select class="select" id="role" name="role">
+          <option value="staf">Staf — tambah &amp; ubah buku dan file</option>
+          <option value="admin">Admin — juga hapus data &amp; kelola pengguna</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field__label" for="bagian">Akses bagian</label>
+        <select class="select" id="bagian" name="bagian">
+          <option value="">Semua bagian</option>
+          {% for bg in BAGIAN %}<option value="{{ bg }}">Hanya {{ bg }}</option>{% endfor %}
+        </select>
+        <span class="field__hint">Staf yang dibatasi hanya bisa melihat dan mengubah buku &amp; file bagiannya. Admin selalu semua bagian.</span>
+      </div>
+      <button class="button button--primary button--block" type="submit">{{ icon('plus') }} Buat akun</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, tahap_badge, csrf %}
+{% block title %}Buku dalam Produksi{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Buku dalam Produksi</h1>
+    <p class="page-sub">{{ total }} buku aktif · {{ siap_cetak }} siap cetak</p>
+  </div>
+  <div class="page-actions">
+    <a class="button button--secondary" href="{{ url_for('produksi_export', tahap=f.tahap or None, q=f.q or None) }}"
+       title="Unduh daftar yang sedang tampil (sesuai filter) beserta riwayat tahapnya">{{ icon('download') }} Ekspor Excel</a>
+    <a class="button button--primary" href="{{ url_for('buku_tambah') }}">+ Tambah Buku</a>
+  </div>
+</div>
+
+<div class="toolbar">
+  <nav class="pills" aria-label="Filter tahap">
+    <a class="pill {{ 'is-active' if f.tahap not in SEMUA_TAHAP }}" href="{{ url_for('produksi', q=f.q or None) }}">Semua <span class="pill__n">{{ total }}</span></a>
+    {% for t in TAHAP %}
+    <a class="pill {{ 'is-active' if f.tahap == t }}" href="{{ url_for('produksi', tahap=t, q=f.q or None) }}">{{ t }} <span class="pill__n">{{ jumlah[t] }}</span></a>
+    {% endfor %}
+  </nav>
+  <form class="search" method="get" role="search">
+    {% if f.tahap %}<input type="hidden" name="tahap" value="{{ f.tahap }}">{% endif %}
+    {{ icon('search') }}
+    <label class="sr-only" for="q">Cari</label>
+    <input class="field__input" id="q" type="search" name="q" value="{{ f.q }}" placeholder="Cari judul, kode, atau PIC">
+  </form>
+</div>
+
+<section class="card table-card">
+  {% if buku %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th>Kode</th><th>Judul Buku</th><th class="hide-sm">PIC</th><th>Tenggat</th><th>Tahap</th></tr>
+      </thead>
+      <tbody>
+        {% for b in buku %}
+        <tr>
+          <td class="nowrap">{{ b.kode }}</td>
+          <td>
+            <a class="judul" href="{{ url_for('buku_detail', buku_id=b.id) }}">{{ b.judul }}</a>
+            <div class="sub">{{ b.penulis or '—' }} · {{ b.bagian }}</div>
+          </td>
+          <td class="hide-sm">{{ b.pic or '—' }}</td>
+          <td class="nowrap {{ 'late' if b.status == 'terlambat' }}" title="{{ b|sisa }}">{{ b.tenggat|ddmm }}</td>
+          <td>
+            <form method="post" action="{{ url_for('buku_tahap', buku_id=b.id) }}">
+              {{ csrf() }}
+              <input type="hidden" name="next" value="{{ request.full_path }}">
+              <label class="tahap-pick">
+                {{ tahap_badge(b.tahap) }}{{ icon('chevron-down') }}
+                <select name="tahap" aria-label="Ubah tahap {{ b.judul }}" data-autosubmit>
+                  {% for t in TAHAP %}<option value="{{ t }}" {{ 'selected' if b.tahap == t }}>{{ t }}</option>{% endfor %}
+                  <option value="{{ SELESAI }}">{{ SELESAI }} (buku sudah jadi)</option>
+                </select>
+              </label>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">
+    {{ icon('book') }}
+    <p class="empty__title">Tidak ada buku</p>
+    <p>{% if f.q or f.tahap %}Coba ubah filter atau kata pencarian.{% else %}Mulai dengan menambahkan buku pertama.{% endif %}</p>
+  </div>
+  {% endif %}
+</section>
+
+<div class="card notice notice--inline" style="margin-top:20px">
+  {{ icon('info') }}
+  <span>Ubah tahap langsung dari kolom Tahap. Pilih <strong>Selesai</strong> bila buku sudah jadi; buku pindah ke menu Buku Selesai.</span>
+  <a class="link notice__edit" href="{{ url_for('selesai') }}">Lihat Buku Selesai ({{ arsip }}) →</a>
+</div>
+{% endblock %}

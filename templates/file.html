@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, csrf %}
+{% block title %}File{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">File</h1>
+    <p class="page-sub">Naskah, sampul, layout, dan PDF final — tersimpan di folder <code>uploads/</code></p>
+  </div>
+  <div class="page-actions">
+    <button class="button button--primary" type="button" data-dialog="unggah">{{ icon('upload') }} Unggah file</button>
+  </div>
+</div>
+
+<nav class="tabs" aria-label="Folder">
+  <a class="tab {{ 'is-active' if not f.folder }}" href="{{ url_for('file_list', q=f.q, buku=f.buku) }}">{{ icon('folder', 'tab__icon') }} Semua <span class="tab__n">{{ total }}</span></a>
+  {% for fd in FOLDER %}
+  <a class="tab {{ 'is-active' if f.folder == fd }}" href="{{ url_for('file_list', folder=fd, q=f.q, buku=f.buku) }}">{{ fd }} <span class="tab__n">{{ jumlah[fd] }}</span></a>
+  {% endfor %}
+</nav>
+
+<section class="card">
+  <form class="filters" method="get">
+    <input type="hidden" name="folder" value="{{ f.folder }}">
+    <label class="search">
+      <span class="sr-only">Cari file</span>
+      {{ icon('search') }}
+      <input class="field__input input-sm" type="search" name="q" value="{{ f.q }}" placeholder="Cari nama file atau judul buku">
+    </label>
+    <select class="select input-sm" name="buku" aria-label="Buku" data-autosubmit style="max-width: 280px">
+      <option value="">Semua buku</option>
+      {% for bk in daftar_buku %}<option value="{{ bk.id }}" {{ 'selected' if f.buku == bk.id }}>{{ bk.kode }} — {{ bk.judul }}</option>{% endfor %}
+    </select>
+    <button class="button button--secondary button--sm" type="submit">Cari</button>
+    {% if f.q or f.buku %}<a class="link" href="{{ url_for('file_list', folder=f.folder) }}">Reset</a>{% endif %}
+  </form>
+
+  {% if files %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th>Nama file</th><th class="hide-sm">Folder</th><th class="hide-sm">Buku</th><th class="hide-sm">Ukuran</th><th>Diunggah</th><th class="actions"><span class="sr-only">Aksi</span></th></tr>
+      </thead>
+      <tbody>
+        {% for x in files %}
+        {% set ext = x.nama.rsplit('.', 1)[-1]|lower %}
+        <tr>
+          <td>
+            <div class="file-name">
+              <span class="file-icon file-icon--{{ ext }}">{{ ext[:4] }}</span>
+              <a class="judul" href="{{ url_for('file_unduh', file_id=x.id, lihat=1) }}" target="_blank" rel="noopener" style="word-break: break-word">{{ x.nama }}</a>
+            </div>
+          </td>
+          <td class="hide-sm">{{ x.folder }}</td>
+          <td class="hide-sm">
+            {% if x.buku_id %}<a class="link" href="{{ url_for('buku_detail', buku_id=x.buku_id) }}">{{ x.kode }}</a><div class="sub">{{ x.judul }}</div>{% else %}<span class="muted">—</span>{% endif %}
+          </td>
+          <td class="hide-sm nowrap">{{ x.ukuran|ukuran }}</td>
+          <td><div class="nowrap">{{ x.diunggah|tgl(true) }}</div><div class="sub">{{ x.oleh }}</div></td>
+          <td class="actions">
+            <a class="button button--ghost button--icon" href="{{ url_for('file_unduh', file_id=x.id) }}" title="Unduh" aria-label="Unduh {{ x.nama }}">{{ icon('download') }}</a>
+            {% if user.role == 'admin' %}
+            <form class="inline-form" method="post" action="{{ url_for('file_hapus', file_id=x.id) }}" data-confirm="Hapus file “{{ x.nama }}”? File akan dihapus permanen dari folder uploads.">
+              {{ csrf() }}
+              <input type="hidden" name="next" value="{{ request.full_path }}">
+              <button class="button button--ghost button--icon" type="submit" title="Hapus" aria-label="Hapus {{ x.nama }}" style="color: var(--color-danger)">{{ icon('trash') }}</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">
+    {{ icon('folder') }}
+    <p class="empty__title">Belum ada file</p>
+    <p>Klik <strong>Unggah file</strong> untuk menambahkan naskah, sampul, atau PDF.</p>
+  </div>
+  {% endif %}
+</section>
+
+<dialog id="unggah">
+  <form class="dialog__body" method="post" action="{{ url_for('file_unggah') }}" enctype="multipart/form-data">
+    {{ csrf() }}
+    <input type="hidden" name="next" value="{{ request.full_path }}">
+    <h2 class="dialog__title">Unggah file</h2>
+    <label class="dropzone" data-dropzone>
+      {{ icon('upload') }}
+      <strong>Tarik file ke sini atau klik</strong>
+      <span class="muted small">Bisa pilih beberapa file sekaligus</span>
+      <span class="dropzone__files" data-dropzone-files></span>
+      <input type="file" name="files" multiple required>
+    </label>
+    <div class="field">
+      <label class="field__label" for="up-folder">Folder</label>
+      <select class="select" id="up-folder" name="folder" required>
+        {% for fd in FOLDER %}<option value="{{ fd }}" {{ 'selected' if f.folder == fd }}>{{ fd }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label class="field__label" for="up-buku">Buku terkait <span class="muted" style="font-weight:400">(opsional)</span></label>
+      <select class="select" id="up-buku" name="buku_id">
+        <option value="">Tidak terkait buku</option>
+        {% for bk in daftar_buku %}<option value="{{ bk.id }}" {{ 'selected' if f.buku == bk.id }}>{{ bk.kode }} — {{ bk.judul }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-actions">
+      <button class="button button--secondary" type="button" data-close>Batal</button>
+      <button class="button button--primary" type="submit">Unggah</button>
+    </div>
+  </form>
+</dialog>
+{% endblock %}

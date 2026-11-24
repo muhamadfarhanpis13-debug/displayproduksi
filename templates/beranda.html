@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, csrf, flashes %}
+{% block title %}Beranda{% endblock %}
+{% block body %}
+<header class="topbar">
+  <div class="topbar__inner">
+    <a class="topbar__brand" href="{{ url_for('beranda') }}">
+      <span class="brand__logo brand__logo--sm">PIS</span>
+      <span>Sistem Produksi Buku</span>
+    </a>
+    <span class="topbar__user">{{ user.nama }}{% if user.role == 'admin' %} <span class="badge badge--admin">Admin</span>{% endif %}</span>
+    <form method="post" action="{{ url_for('logout') }}">
+      {{ csrf() }}
+      <button class="button button--secondary" type="submit">Keluar</button>
+    </form>
+  </div>
+</header>
+
+<main class="home">
+  {{ flashes() }}
+  <h1 class="home__title">Assalamu'alaikum, {{ user.nama }}</h1>
+  <p class="page-sub">Pilih menu untuk mulai bekerja.</p>
+
+  <div class="menu-grid menu-grid--4">
+    <a class="card menu-card" href="{{ url_for('produksi') }}">
+      <span class="menu-card__icon">{{ icon('book') }}</span>
+      <span class="menu-card__title">Buku dalam Produksi</span>
+      <span class="menu-card__desc">Pantau tahap setiap buku dan ubah statusnya.</span>
+      <span class="menu-card__go">Buka →</span>
+    </a>
+    <a class="card menu-card" href="{{ url_for('display') }}">
+      <span class="menu-card__icon">{{ icon('monitor') }}</span>
+      <span class="menu-card__title">Display Progres</span>
+      <span class="menu-card__desc">Syafii Kids, Darsyafii, Penerjemah, dan PIS dalam satu layar.</span>
+      <span class="menu-card__go">Buka →</span>
+    </a>
+    <a class="card menu-card" href="{{ url_for('buku_tambah') }}">
+      <span class="menu-card__icon">{{ icon('plus-circle') }}</span>
+      <span class="menu-card__title">Tambah Data Buku</span>
+      <span class="menu-card__desc">Daftarkan buku baru ke alur produksi.</span>
+      <span class="menu-card__go">Buka →</span>
+    </a>
+    <a class="card menu-card" href="{{ url_for('selesai') }}">
+      <span class="menu-card__icon">{{ icon('book-check') }}</span>
+      <span class="menu-card__title">Buku Selesai</span>
+      <span class="menu-card__desc">Daftar buku yang sudah jadi beserta lama produksinya.</span>
+      <span class="menu-card__go">Buka →</span>
+    </a>
+  </div>
+
+  {% if user.role == 'admin' %}
+  <h2 class="home__section">Menu admin</h2>
+  <div class="menu-grid menu-grid--4 menu-grid--admin">
+    <a class="card menu-card" href="{{ url_for('pengguna') }}">
+      <span class="menu-card__icon">{{ icon('users') }}</span>
+      <span class="menu-card__title">Kelola Pengguna</span>
+      <span class="menu-card__desc">Buat akun, atur akses bagian, reset kata sandi.</span>
+      <span class="menu-card__go">Buka →</span>
+    </a>
+    <a class="card menu-card" href="{{ url_for('file_list') }}">
+      <span class="menu-card__icon">{{ icon('folder') }}</span>
+      <span class="menu-card__title">File</span>
+      <span class="menu-card__desc">Semua file naskah, sampul, layout, dan PDF final.</span>
+      <span class="menu-card__go">Buka →</span>
+    </a>
+  </div>
+  {% endif %}
+
+  <section class="card notice">
+    {{ icon('info') }}
+    <div style="flex:1; min-width:0">
+      <div class="notice__title">Pengumuman</div>
+      {% if pengumuman.nilai %}
+      <p class="notice__text">{{ pengumuman.nilai }}</p>
+      {% if pengumuman.diubah %}<p class="notice__meta">Diperbarui {{ pengumuman.diubah|tgl(true) }} oleh {{ pengumuman.oleh }}</p>{% endif %}
+      {% else %}
+      <p class="notice__text muted">Belum ada pengumuman.</p>
+      {% endif %}
+    </div>
+    {% if user.role == 'admin' %}
+    <button class="button button--ghost button--sm notice__edit" type="button" data-dialog="ubah-pengumuman">{{ icon('edit') }} Ubah</button>
+    {% endif %}
+  </section>
+
+  <p class="small muted" style="margin-top:16px">
+    Menu lain: <a class="link" href="{{ url_for('file_list') }}">File</a>
+    {% if user.role == 'admin' %} · <a class="link" href="{{ url_for('pengguna') }}">Pengguna</a>{% endif %}
+    · <a class="link" href="{{ url_for('akun') }}">Akun saya</a>
+  </p>
+</main>
+
+{% if user.role == 'admin' %}
+<dialog id="ubah-pengumuman">
+  <form class="dialog__body" method="post" action="{{ url_for('pengumuman_simpan') }}">
+    {{ csrf() }}
+    <h2 class="dialog__title">Ubah pengumuman</h2>
+    <div class="field">
+      <label class="field__label" for="isi">Isi pengumuman</label>
+      <textarea class="textarea" id="isi" name="isi" rows="4" placeholder="Misalnya jadwal rapat atau tenggat cetak minggu ini">{{ pengumuman.nilai }}</textarea>
+      <span class="field__hint">Kosongkan untuk menghapus pengumuman.</span>
+    </div>
+    <div class="form-actions">
+      <button class="button button--secondary" type="button" data-close>Batal</button>
+      <button class="button button--primary" type="submit">Simpan</button>
+    </div>
+  </form>
+</dialog>
+{% endif %}
+{% endblock %}
